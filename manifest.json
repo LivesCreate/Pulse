@@ -1,0 +1,26 @@
+{
+  "name": "Pulse",
+  "short_name": "Pulse",
+  "description": "A calm at-a-glance personal dashboard.",
+  "version": "1.0.0",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20180%20180'%3E%3Crect%20width='180'%20height='180'%20fill='%23000'/%3E%3Cg%20fill='%23F5B942'%3E%3Crect%20x='28'%20y='86'%20width='20'%20height='8'/%3E%3Crect%20x='48'%20y='86'%20width='12'%20height='8'/%3E%3Crect%20x='60'%20y='62'%20width='12'%20height='56'/%3E%3Crect%20x='72'%20y='38'%20width='12'%20height='104'/%3E%3Crect%20x='84'%20y='70'%20width='12'%20height='40'/%3E%3Crect%20x='96'%20y='86'%20width='12'%20height='8'/%3E%3Crect%20x='108'%20y='54'%20width='12'%20height='72'/%3E%3Crect%20x='120'%20y='86'%20width='12'%20height='8'/%3E%3Crect%20x='132'%20y='86'%20width='20'%20height='8'/%3E%3C/g%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20180%20180'%3E%3Crect%20width='180'%20height='180'%20fill='%23000'/%3E%3Cg%20fill='%23F5B942'%3E%3Crect%20x='28'%20y='86'%20width='20'%20height='8'/%3E%3Crect%20x='48'%20y='86'%20width='12'%20height='8'/%3E%3Crect%20x='60'%20y='62'%20width='12'%20height='56'/%3E%3Crect%20x='72'%20y='38'%20width='12'%20height='104'/%3E%3Crect%20x='84'%20y='70'%20width='12'%20height='40'/%3E%3Crect%20x='96'%20y='86'%20width='12'%20height='8'/%3E%3Crect%20x='108'%20y='54'%20width='12'%20height='72'/%3E%3Crect%20x='120'%20y='86'%20width='12'%20height='8'/%3E%3Crect%20x='132'%20y='86'%20width='20'%20height='8'/%3E%3C/g%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
