@@ -203,7 +203,7 @@
 
   /* ---------- Note ---------- */
   .note {
-    width: 100%; min-height: 150px; resize: vertical;
+    width: 100%; resize: none; overflow-y: auto;
     background: transparent; border: none; outline: none;
     color: var(--text); font-size: 16px; line-height: 1.55;
     font-family: inherit; padding: 0;
@@ -212,6 +212,39 @@
   .note::placeholder { color: var(--text-faint); }
   .note-status { font-size: 11px; color: var(--text-faint); font-weight: 600; letter-spacing: 0.04em; transition: opacity 0.4s; }
   .note-status.saved { color: var(--amber-dim); }
+  .note-resize {
+    display: flex; align-items: center; justify-content: center;
+    height: 24px; margin: 8px -20px -8px; cursor: ns-resize;
+    touch-action: none;
+    -webkit-user-select: none; user-select: none;
+  }
+  .note-resize span {
+    width: 38px; height: 4px; border-radius: 999px;
+    background: var(--hairline-strong);
+    transition: background 0.15s var(--ease), width 0.15s var(--ease);
+  }
+  .note-resize:active span { background: var(--amber-dim); width: 52px; }
+  @media (hover: hover) { .note-resize:hover span { background: var(--text-faint); } }
+
+  /* ---------- Version badge ---------- */
+  .ver-badge {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom) + 8px);
+    right: calc(env(safe-area-inset-right) + 10px);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+    z-index: 50;
+    pointer-events: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 
   /* ---------- Desktop ---------- */
   @media (min-width: 760px) {
@@ -242,7 +275,7 @@
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script>
-const VERSION = "1.0.1";
+const VERSION = "1.0.3";
 
 (function () {
   "use strict";
@@ -258,6 +291,7 @@ const VERSION = "1.0.1";
 
   const LS_PROJECTS = "pulse_projects_v1";
   const LS_NOTE = "pulse_note_v1";
+  const LS_NOTE_H = "pulse_note_h_v1";
 
   const DEFAULT_PROJECTS = [
     { id: "fluxbucks", name: "FluxBucks", url: "https://livescreate.github.io/FluxBucks-Game/", ver: "5.3.9" },
@@ -551,10 +585,17 @@ const VERSION = "1.0.1";
   }
 
   // ---- Scratch note ----
+  var NOTE_MIN = 90, NOTE_MAX = 480;
   function Note() {
     const [text, setText] = useState(function () { return loadJSON(LS_NOTE, ""); });
     const [saved, setSaved] = useState(true);
+    const [height, setHeight] = useState(function () {
+      var h = loadJSON(LS_NOTE_H, 150);
+      if (typeof h !== "number") h = 150;
+      return Math.max(NOTE_MIN, Math.min(NOTE_MAX, h));
+    });
     const timer = useRef(null);
+    const drag = useRef(null);
 
     function onChange(ev) {
       const v = ev.target.value;
@@ -565,6 +606,25 @@ const VERSION = "1.0.1";
         saveJSON(LS_NOTE, v);
         setSaved(true);
       }, 500);
+    }
+
+    function onPointerDown(ev) {
+      ev.preventDefault();
+      drag.current = { startY: ev.clientY, startH: height, latest: height };
+      try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch (e2) {}
+    }
+    function onPointerMove(ev) {
+      if (!drag.current) return;
+      var h = drag.current.startH + (ev.clientY - drag.current.startY);
+      h = Math.max(NOTE_MIN, Math.min(NOTE_MAX, h));
+      drag.current.latest = h;
+      setHeight(h);
+    }
+    function endDrag() {
+      if (!drag.current) return;
+      var h = drag.current.latest;
+      drag.current = null;
+      saveJSON(LS_NOTE_H, h);
     }
 
     useEffect(function () {
@@ -578,9 +638,19 @@ const VERSION = "1.0.1";
       ),
       e("textarea", {
         className: "note", value: text, onChange: onChange,
+        style: { height: height + "px" },
         placeholder: "Jot something down… saves automatically.",
         spellCheck: false
-      })
+      }),
+      e("div", {
+        className: "note-resize",
+        onPointerDown: onPointerDown,
+        onPointerMove: onPointerMove,
+        onPointerUp: endDrag,
+        onPointerCancel: endDrag,
+        title: "Drag to resize",
+        "aria-label": "Drag to resize the scratch area"
+      }, e("span", null))
     );
   }
 
@@ -591,7 +661,8 @@ const VERSION = "1.0.1";
         e(Weather),
         e(Projects),
         e(Note)
-      )
+      ),
+      e("div", { className: "ver-badge" }, "v" + VERSION)
     );
   }
 

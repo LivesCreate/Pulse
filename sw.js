@@ -1,5 +1,5 @@
 // Pulse service worker
-const CACHE_NAME = "pulse-v1.0.1";
+const CACHE_NAME = "pulse-v1.0.3";
 
 const APP_SHELL = [
   "./",
