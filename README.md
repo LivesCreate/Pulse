@@ -17,15 +17,6 @@ Built as a single-file React app (no build step) and installable as a PWA on any
 
 ---
 
-## Tech stack
-
-- React 18 via CDN (`React.createElement`, no JSX, no bundler)
-- `localStorage` for all persistence (projects + note)
-- PWA: `manifest.json` + `sw.js` service worker
-- Capacitor-ready structure (relative paths throughout) if wrapped as an Android APK later
-
----
-
 ## Files
 
 | File | Purpose |
@@ -38,27 +29,7 @@ Built as a single-file React app (no build step) and installable as a PWA on any
 
 ---
 
-## Deploy (GitHub Pages)
-
-1. Put all files in the repository root.
-2. In the repo: **Settings → Pages → Build and deployment**, set the source to your default branch, root folder.
-3. Open the published URL. Install it from the browser menu ("Add to Home Screen" / "Install app") to run it standalone.
-
-To run locally, serve the folder with any static server (PWAs need `http`, not `file://`):
-
-```bash
-npx serve .
-```
-
----
-
 ## Customization
 
 - **Projects** — edit in-app with the ✎ button. Defaults are placeholders; correct the URLs and version numbers once and they persist.
 - **Weather location** — change `LAT` and `LON` near the top of the `<script>` in `index.html`. Units default to Fahrenheit and mph; adjust the `temperature_unit` / `wind_speed_unit` parameters in the weather URL to switch.
-
----
-
-## Version
-
-`1.0.0`
