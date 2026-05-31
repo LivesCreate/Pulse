@@ -144,6 +144,38 @@
   .weather-meta b { color: var(--text-dim); font-weight: 600; }
   .weather-loading, .weather-error { color: var(--text-faint); font-size: 14px; padding: 8px 0; }
   .weather-error { color: var(--expense); }
+
+  /* location picker */
+  .loc-toggle {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: none; border: none; padding: 0; margin: 0; cursor: pointer;
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint);
+    transition: color 0.15s var(--ease);
+  }
+  .loc-toggle:active { color: var(--amber); }
+  @media (hover: hover) { .loc-toggle:hover { color: var(--text-dim); } }
+  .loc-chev { font-size: 9px; line-height: 1; }
+  .loc-editor { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+  .loc-gps {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: rgba(245,185,66,0.1); border: 1px solid var(--amber-dim); color: var(--amber);
+    font-family: inherit; font-size: 14px; font-weight: 600; padding: 11px 14px;
+    border-radius: 12px; cursor: pointer; transition: transform 0.15s var(--ease), opacity 0.15s var(--ease);
+  }
+  .loc-gps:active { transform: scale(0.98); }
+  .loc-gps[disabled] { opacity: 0.55; cursor: default; }
+  .loc-gps-pin { font-size: 15px; line-height: 1; }
+  .loc-results { display: flex; flex-direction: column; gap: 4px; }
+  .loc-result {
+    text-align: left; background: var(--surface-2); border: 1px solid transparent;
+    color: var(--text); font-family: inherit; font-size: 14px; font-weight: 500;
+    padding: 11px 14px; border-radius: 10px; cursor: pointer;
+    transition: transform 0.15s var(--ease), border-color 0.15s var(--ease);
+  }
+  .loc-result:active { transform: scale(0.99); }
+  @media (hover: hover) { .loc-result:hover { border-color: var(--hairline-strong); } }
+  .loc-msg { font-size: 13px; color: var(--text-faint); padding: 2px 2px 0; }
   .retry {
     margin-top: 10px; background: var(--surface-2); border: 1px solid var(--hairline);
     color: var(--amber); font-size: 13px; font-weight: 600; padding: 8px 14px;
@@ -229,8 +261,8 @@
   /* ---------- Version badge ---------- */
   .ver-badge {
     position: fixed;
-    bottom: calc(env(safe-area-inset-bottom) + 8px);
-    right: calc(env(safe-area-inset-right) + 10px);
+    bottom: calc(env(safe-area-inset-bottom) + 18px);
+    right: calc(env(safe-area-inset-right) + 18px);
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -275,23 +307,25 @@
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script>
-const VERSION = "1.0.4";
+const VERSION = "1.1.0";
 
 (function () {
   "use strict";
   const { useState, useEffect, useRef, useCallback } = React;
   const e = React.createElement;
 
-  // ---- Location: Gilroy, California ----
-  const LAT = 37.0058, LON = -121.5683;
-  const WEATHER_URL =
-    "https://api.open-meteo.com/v1/forecast?latitude=" + LAT + "&longitude=" + LON +
-    "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m" +
-    "&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America%2FLos_Angeles";
+  // ---- Weather location ----
+  const DEFAULT_LOCATION = { name: "Gilroy, CA", lat: 37.0058, lon: -121.5683 };
+  function buildWeatherUrl(lat, lon) {
+    return "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon +
+      "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m" +
+      "&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto";
+  }
 
   const LS_PROJECTS = "pulse_projects_v1";
   const LS_NOTE = "pulse_note_v1";
   const LS_NOTE_H = "pulse_note_h_v1";
+  const LS_LOCATION = "pulse_location_v1";
 
   const DEFAULT_PROJECTS = [
     { id: "fluxbucks", name: "FluxBucks", url: "https://livescreate.github.io/FluxBucks-Game/", ver: "5.3.9" },
@@ -428,6 +462,36 @@ const VERSION = "1.0.4";
     return { label: "—", art: "cloud" };
   }
 
+  // ---- Geocoding helpers ----
+  // Coordinates -> place name (keyless, client-side, CORS-enabled).
+  function reverseGeocode(lat, lon) {
+    return fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" +
+      lat + "&longitude=" + lon + "&localityLanguage=en")
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var city = j.city || j.locality || j.principalSubdivision || "Current location";
+        var sub = j.principalSubdivisionCode ? j.principalSubdivisionCode.split("-").pop() : "";
+        return sub ? city + ", " + sub : city;
+      })
+      .catch(function () { return "Current location"; });
+  }
+
+  // City name -> matching locations (keyless, CORS-enabled).
+  function searchCity(q) {
+    return fetch("https://geocoding-api.open-meteo.com/v1/search?name=" +
+      encodeURIComponent(q) + "&count=5&language=en&format=json")
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        return (j.results || []).map(function (x) {
+          var label = x.name;
+          if (x.admin1) label += ", " + x.admin1;
+          if (x.country_code) label += ", " + x.country_code;
+          return { name: label, lat: x.latitude, lon: x.longitude };
+        });
+      })
+      .catch(function () { return []; });
+  }
+
   // ---- Clock ----
   function Clock() {
     const [now, setNow] = useState(new Date());
@@ -458,11 +522,18 @@ const VERSION = "1.0.4";
 
   // ---- Weather ----
   function Weather() {
+    const [location, setLocation] = useState(function () { return loadJSON(LS_LOCATION, DEFAULT_LOCATION); });
     const [state, setState] = useState({ status: "loading", data: null });
+    const [editing, setEditing] = useState(false);
+    const [query, setQuery] = useState("");
+    const [results, setResults] = useState([]);
+    const [busy, setBusy] = useState(false);
+    const [msg, setMsg] = useState("");
+    const searchTimer = useRef(null);
 
     const fetchWeather = useCallback(function () {
       setState(function (s) { return { status: "loading", data: s.data }; });
-      fetch(WEATHER_URL, { cache: "no-store" })
+      fetch(buildWeatherUrl(location.lat, location.lon), { cache: "no-store" })
         .then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); })
         .then(function (j) {
           if (!j || !j.current) throw new Error("nodata");
@@ -471,13 +542,52 @@ const VERSION = "1.0.4";
         .catch(function () {
           setState(function (s) { return { status: s.data ? "ok" : "error", data: s.data }; });
         });
-    }, []);
+    }, [location]);
 
     useEffect(function () {
       fetchWeather();
       const t = setInterval(fetchWeather, 15 * 60 * 1000);
       return function () { clearInterval(t); };
     }, [fetchWeather]);
+
+    function applyLocation(loc) {
+      setLocation(loc);
+      saveJSON(LS_LOCATION, loc);
+      setEditing(false);
+      setQuery("");
+      setResults([]);
+      setMsg("");
+      setBusy(false);
+    }
+
+    function useMyLocation() {
+      if (!navigator.geolocation) { setMsg("Geolocation isn't available on this device."); return; }
+      setBusy(true);
+      setMsg("Finding your location…");
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        var lat = pos.coords.latitude, lon = pos.coords.longitude;
+        reverseGeocode(lat, lon).then(function (name) {
+          applyLocation({ name: name, lat: lat, lon: lon });
+        });
+      }, function (err) {
+        setBusy(false);
+        setMsg(err && err.code === 1 ? "Location permission denied." : "Couldn't get your location.");
+      }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
+    }
+
+    function onQuery(ev) {
+      var q = ev.target.value;
+      setQuery(q);
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+      if (q.trim().length < 2) { setResults([]); return; }
+      searchTimer.current = setTimeout(function () {
+        searchCity(q.trim()).then(function (res) { setResults(res); });
+      }, 350);
+    }
+
+    useEffect(function () {
+      return function () { if (searchTimer.current) clearTimeout(searchTimer.current); };
+    }, []);
 
     let body;
     if (state.status === "loading" && !state.data) {
@@ -507,13 +617,41 @@ const VERSION = "1.0.4";
       );
     }
 
+    const editor = editing ? e("div", { className: "loc-editor" },
+      e("button", { className: "loc-gps", onClick: useMyLocation, disabled: busy },
+        e("span", { className: "loc-gps-pin" }, "◎"),
+        busy ? "Locating…" : "Use my location"
+      ),
+      e("input", {
+        className: "inp", value: query, onChange: onQuery,
+        placeholder: "Search a city…", spellCheck: false,
+        autoComplete: "off", autoCorrect: "off"
+      }),
+      results.length > 0 ? e("div", { className: "loc-results" },
+        results.map(function (r, i) {
+          return e("button", {
+            key: i, className: "loc-result",
+            onClick: function () { applyLocation(r); }
+          }, r.name);
+        })
+      ) : null,
+      msg ? e("div", { className: "loc-msg" }, msg) : null
+    ) : null;
+
     return e("section", { className: "card weather-card" },
       e("div", { className: "card-head" },
-        e("p", { className: "card-title" }, "Gilroy, CA"),
+        e("button", {
+          className: "loc-toggle", onClick: function () { setEditing(!editing); setMsg(""); },
+          "aria-label": "Change location"
+        },
+          location.name.toUpperCase(),
+          e("span", { className: "loc-chev" }, editing ? "▴" : "▾")
+        ),
         e("button", {
           className: "icon-btn", onClick: fetchWeather, title: "Refresh weather", "aria-label": "Refresh weather"
         }, "↻")
       ),
+      editor,
       body
     );
   }

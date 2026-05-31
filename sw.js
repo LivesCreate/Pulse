@@ -1,5 +1,5 @@
 // Pulse service worker
-const CACHE_NAME = "pulse-v1.0.4";
+const CACHE_NAME = "pulse-v1.1.0";
 
 const APP_SHELL = [
   "./",
@@ -37,8 +37,10 @@ self.addEventListener("fetch", function (event) {
 
   const url = new URL(req.url);
 
-  // Never cache live weather data — always go to the network.
-  if (url.hostname === "api.open-meteo.com") {
+  // Never cache live data APIs — always go to the network.
+  if (url.hostname === "api.open-meteo.com" ||
+      url.hostname === "geocoding-api.open-meteo.com" ||
+      url.hostname === "api.bigdatacloud.net") {
     return; // let the browser handle it normally
   }
 
