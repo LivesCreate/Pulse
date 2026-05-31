@@ -1,5 +1,5 @@
 // Pulse service worker
-const CACHE_NAME = "pulse-v1.0.3";
+const CACHE_NAME = "pulse-v1.0.4";
 
 const APP_SHELL = [
   "./",
@@ -18,7 +18,7 @@ self.addEventListener("install", function (event) {
   );
 });
 
-// Activate: clear any old caches, take control
+// Activate: clear any old caches, take control of open pages
 self.addEventListener("activate", function (event) {
   event.waitUntil(
     caches.keys().then(function (keys) {
@@ -42,17 +42,17 @@ self.addEventListener("fetch", function (event) {
     return; // let the browser handle it normally
   }
 
-  // Same-origin app shell: cache-first, then network (and cache the result).
+  // Same-origin app files: NETWORK-FIRST so updates always show when online.
+  // Falls back to cache only when offline.
   if (url.origin === self.location.origin) {
     event.respondWith(
-      caches.match(req).then(function (cached) {
-        if (cached) return cached;
-        return fetch(req).then(function (res) {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then(function (cache) { cache.put(req, copy); });
-          return res;
-        }).catch(function () {
-          return caches.match("./index.html");
+      fetch(req).then(function (res) {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then(function (cache) { cache.put(req, copy); });
+        return res;
+      }).catch(function () {
+        return caches.match(req).then(function (cached) {
+          return cached || caches.match("./index.html");
         });
       })
     );
